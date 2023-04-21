@@ -1,5 +1,4 @@
-# K4fledmanish.github.io
-# 💫 About Me:
+# 💫 K4fledmanish
 Full Stack Developer<br>Machine Learning & Artificial Intelligence<br>Passion for Developing Cutting-Edge Applications
 
 
