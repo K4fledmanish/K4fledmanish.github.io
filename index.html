@@ -552,6 +552,11 @@ a{color:inherit;}
 
 <div id="toast"></div>
 
+<!-- Background music -->
+<audio id="bgMusic" loop>
+  <source src="background.mp3.m4a" type="audio/mp4">
+</audio>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script>
 /* =========================================================================
@@ -1238,6 +1243,9 @@ function finishLoad(){
   setTimeout(()=>{
     document.getElementById('loader').classList.add('hidden');
     document.getElementById('opening').classList.add('show');
+    // Start background music after loading completes
+    const bgMusic = document.getElementById('bgMusic');
+    if(bgMusic) bgMusic.play().catch(err => console.log('Audio autoplay prevented:', err));
   }, 250);
 }
 
