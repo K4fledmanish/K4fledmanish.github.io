@@ -62,6 +62,11 @@ a{color:inherit;}
 .loader-track{width:220px; height:2px; background:var(--line); border-radius:2px; overflow:hidden; position:relative;}
 .loader-fill{position:absolute; inset:0 100% 0 0; background:linear-gradient(90deg,var(--amber),var(--azure)); border-radius:2px; transition:right .25s linear;}
 .loader-pct{margin-top:14px; font-size:12px; color:var(--ink-faint); font-variant-numeric:tabular-nums; letter-spacing:.08em;}
+.loader-start-btn{
+  margin-top:30px; opacity:0; transform:translateY(10px); pointer-events:none;
+  transition:opacity .6s var(--ease), transform .6s var(--ease);
+}
+.loader-start-btn.ready{ opacity:1; transform:translateY(0); pointer-events:auto; }
 
 /* ================= OPENING SCENE ================= */
 #opening{
@@ -72,8 +77,20 @@ a{color:inherit;}
 }
 #opening.show{opacity:1; visibility:visible; pointer-events:auto;}
 #opening.dismiss{opacity:0; visibility:hidden; pointer-events:none;}
+
+/* Solid blackout — covers the world completely at first load, then fades
+   away on its own once the intro text has finished appearing. */
+#introBlackout{
+  position:absolute; inset:0; z-index:0;
+  background:#000;
+  opacity:1;
+  pointer-events:none;
+  transition:opacity 9s var(--ease);
+}
+#introBlackout.fade{ opacity:0; }
+
 .opening-scrim{
-  position:absolute; inset:0;
+  position:absolute; inset:0; z-index:1;
   background:linear-gradient(0deg, rgba(6,8,13,.92) 0%, rgba(6,8,13,.55) 42%, rgba(6,8,13,.15) 70%, rgba(6,8,13,0) 100%);
 }
 .opening-content{
@@ -81,6 +98,21 @@ a{color:inherit;}
   padding:6vh 6vw 8vh;
   display:flex; flex-direction:column; gap:22px; max-width:900px;
 }
+
+/* Staggered fade-up for each line of intro text, triggered once
+   #opening gets the .show class. */
+@keyframes introFadeUp{
+  from{ opacity:0; transform:translateY(16px); }
+  to{ opacity:1; transform:translateY(0); }
+}
+.opening-eyebrow, .opening-title, .opening-role, .opening-line, .opening-actions{
+  opacity:0;
+}
+#opening.show .opening-eyebrow{ animation:introFadeUp 2.4s var(--ease) .4s forwards; }
+#opening.show .opening-title{ animation:introFadeUp 2.6s var(--ease) 1.6s forwards; }
+#opening.show .opening-role{ animation:introFadeUp 2.6s var(--ease) 3.2s forwards; }
+#opening.show .opening-line{ animation:introFadeUp 2.6s var(--ease) 4.8s forwards; }
+#opening.show .opening-actions{ animation:introFadeUp 2.6s var(--ease) 6.4s forwards; }
 .opening-eyebrow{
   font-family:var(--font-display); font-weight:600; font-size:12.5px; letter-spacing:.28em;
   color:var(--amber-2); text-transform:uppercase; display:flex; align-items:center; gap:10px;
@@ -176,18 +208,29 @@ a{color:inherit;}
 .location-tag .t{font-family:var(--font-display); font-weight:700; font-size:16px; color:var(--ink); margin-top:2px;}
 
 /* bottom dock nav */
-.dock{
+.dock-wrap{
   position:absolute; left:50%; bottom:22px; transform:translateX(-50%);
-  display:flex; gap:6px; padding:8px; border-radius:100px;
+  pointer-events:auto; max-width:94vw;
+}
+.dock-wrap::before, .dock-wrap::after{
+  content:''; position:absolute; top:0; bottom:0; width:28px; z-index:2; pointer-events:none;
+  border-radius:100px;
+}
+.dock-wrap::before{ left:0; background:linear-gradient(90deg, rgba(13,17,27,.85), rgba(13,17,27,0)); }
+.dock-wrap::after{ right:0; background:linear-gradient(270deg, rgba(13,17,27,.85), rgba(13,17,27,0)); }
+.dock{
+  display:flex; gap:4px; padding:8px; border-radius:100px;
   background:rgba(13,17,27,.72); backdrop-filter:blur(14px);
-  border:1px solid var(--line); pointer-events:auto;
-  max-width:min(92vw, 780px); overflow-x:auto; scrollbar-width:none;
+  border:1px solid var(--line);
+  max-width:min(94vw, 900px); overflow-x:auto; scroll-snap-type:x proximity;
+  scrollbar-width:none;
 }
 .dock::-webkit-scrollbar{display:none;}
 .dock-btn{
-  flex:0 0 auto; display:flex; align-items:center; gap:7px; padding:9px 15px; border-radius:100px;
-  border:none; background:transparent; color:var(--ink-faint); cursor:pointer; font-size:12.5px; font-weight:600;
+  flex:0 0 auto; display:flex; align-items:center; gap:6px; padding:9px 12px; border-radius:100px;
+  border:none; background:transparent; color:var(--ink-faint); cursor:pointer; font-size:12px; font-weight:600;
   font-family:var(--font-display); letter-spacing:.01em; transition:all .3s var(--ease); white-space:nowrap;
+  scroll-snap-align:start;
 }
 .dock-btn .dot{width:6px; height:6px; border-radius:50%; background:currentColor; opacity:.5;}
 .dock-btn:hover{color:var(--ink); background:rgba(255,255,255,.05);}
@@ -349,7 +392,9 @@ a{color:inherit;}
   .map-panel{width:min(84vw,300px); right:14px;}
   #panel{width:100vw; border-left:none;}
   .panel-inner{padding:24px 22px 50px;}
-  .dock{max-width:94vw; bottom:14px;}
+  .dock-wrap{max-width:96vw; bottom:14px;}
+  .dock{max-width:96vw;}
+  .dock-btn{padding:8px 10px; font-size:11.5px;}
   .brand{top:16px; left:16px;}
   .top-right-controls{top:16px; right:16px;}
   .modal-grid{grid-template-columns:1fr;}
@@ -364,6 +409,10 @@ a{color:inherit;}
   <div class="loader-mark">MANISH'S DIGITAL WORLD</div>
   <div class="loader-track"><div class="loader-fill" id="loaderFill"></div></div>
   <div class="loader-pct" id="loaderPct">Loading environment — 0%</div>
+  <button class="btn-primary loader-start-btn" id="loaderStartBtn">
+    Start
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+  </button>
 </div>
 
 <!-- ============ WORLD / MAP ============ -->
@@ -484,6 +533,7 @@ a{color:inherit;}
 
 <!-- ============ OPENING SCENE ============ -->
 <div id="opening">
+  <div id="introBlackout"></div>
   <div class="opening-scrim"></div>
   <div class="opening-content">
     <div class="opening-eyebrow">Manish's Digital World</div>
@@ -513,7 +563,7 @@ a{color:inherit;}
   </div>
 
   <div class="top-right-controls">
-    <button class="icon-btn" id="soundBtn" aria-label="Toggle ambient sound" title="Sound">
+    <button class="icon-btn on" id="soundBtn" aria-label="Toggle ambient sound" title="Sound">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M19 5a11 11 0 0 1 0 14M15.5 8.5a6 6 0 0 1 0 7" id="soundWaves"/></svg>
     </button>
     <button class="icon-btn" id="mapBtn" aria-label="Toggle destination map" title="Map">
@@ -534,7 +584,9 @@ a{color:inherit;}
     <span><kbd>Esc</kbd> Close panel</span>
   </div>
 
-  <div class="dock" id="dock"></div>
+  <div class="dock-wrap">
+    <div class="dock" id="dock"></div>
+  </div>
 </div>
 
 <!-- ============ INFO PANEL ============ -->
@@ -553,7 +605,7 @@ a{color:inherit;}
 <div id="toast"></div>
 
 <!-- Background music -->
-<audio id="bgMusic" loop>
+<audio id="bgMusic" loop preload="auto">
   <source src="background.mp3.m4a" type="audio/mp4">
 </audio>
 
@@ -1153,10 +1205,41 @@ function toggleMap(force){
 document.getElementById('mapBtn').addEventListener('click', ()=>toggleMap());
 
 /* ---------------------------------------------------------------------
-   SOUND — minimal, disableable WebAudio blips
+   SOUND — ambient music + tiny WebAudio arrival blips.
+   Sound defaults ON. We TRY to start music the instant the intro screen
+   appears (page 100% loaded) — this works in browsers with a high media
+   engagement score for the site (e.g. a returning visitor), but most
+   browsers still block audio-with-sound until a real user gesture has
+   happened at least once. So: we attempt it immediately, and if that's
+   blocked, we silently retry on the very first click/tap/key anywhere on
+   the page (which in practice is almost always "Start Exploring").
 --------------------------------------------------------------------- */
-let audioCtx=null, soundOn=false;
-function ensureAudio(){ if(!audioCtx){ try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } }
+let audioCtx = null;
+let soundOn = true;          // defaults on — the icon shows "on" state from page load
+let audioUnlocked = false;   // becomes true once bgMusic is actually playing
+
+const bgMusic = document.getElementById('bgMusic');
+if (bgMusic) bgMusic.volume = 0.35;
+
+function ensureAudio(){
+  if(!audioCtx){
+    try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
+  }
+  if(audioCtx && audioCtx.state === 'suspended'){
+    audioCtx.resume().catch(()=>{});
+  }
+}
+
+function unlockAudio(){
+  if(audioUnlocked || !soundOn || !bgMusic) return;
+  ensureAudio();
+  bgMusic.play().then(()=>{
+    audioUnlocked = true;
+  }).catch(err=>{
+    console.log('Audio playback deferred until user interacts:', err);
+  });
+}
+
 function playTone(kind){
   if(!soundOn || !audioCtx) return;
   const o=audioCtx.createOscillator(), g=audioCtx.createGain();
@@ -1169,11 +1252,20 @@ function playTone(kind){
   g.gain.exponentialRampToValueAtTime(0.0001, t+0.32);
   o.start(t); o.stop(t+0.34);
 }
+
 const soundBtn = document.getElementById('soundBtn');
+soundBtn.classList.toggle('on', soundOn); // reflect the default-on state immediately
 soundBtn.addEventListener('click', ()=>{
   ensureAudio();
   soundOn = !soundOn;
   soundBtn.classList.toggle('on', soundOn);
+  if(bgMusic){
+    if(soundOn){
+      bgMusic.play().catch(()=>{});
+    } else {
+      bgMusic.pause();
+    }
+  }
   if(soundOn) playTone('arrive');
 });
 
@@ -1231,25 +1323,50 @@ svg.addEventListener('pointermove', (e)=>{
 --------------------------------------------------------------------- */
 const loaderFill = document.getElementById('loaderFill');
 const loaderPct = document.getElementById('loaderPct');
+const loaderStartBtn = document.getElementById('loaderStartBtn');
 let pct = 0;
 const loadTimer = setInterval(()=>{
   pct += Math.random()*18 + 8;
-  if(pct >= 100){ pct = 100; clearInterval(loadTimer); finishLoad(); }
+  if(pct >= 100){ pct = 100; clearInterval(loadTimer); readyToStart(); }
   loaderFill.style.right = (100-pct) + '%';
   loaderPct.textContent = `Loading environment — ${Math.floor(pct)}%`;
 }, 180);
 
-function finishLoad(){
-  setTimeout(()=>{
-    document.getElementById('loader').classList.add('hidden');
-    document.getElementById('opening').classList.add('show');
-    // Start background music after loading completes
-    const bgMusic = document.getElementById('bgMusic');
-    if(bgMusic) bgMusic.play().catch(err => console.log('Audio autoplay prevented:', err));
-  }, 250);
+// Loading has reached 100% — stop here and wait for the person to click
+// Start. That click is a genuine user gesture, so it's the one guaranteed
+// place music can start playing with sound with no browser restrictions.
+function readyToStart(){
+  loaderPct.textContent = 'Ready';
+  loaderStartBtn.classList.add('ready');
 }
 
+loaderStartBtn.addEventListener('click', ()=>{
+  document.getElementById('loader').classList.add('hidden');
+  document.getElementById('opening').classList.add('show');
+
+  // Real click gesture — music starts for real here, no autoplay tricks needed.
+  unlockAudio();
+
+  // Once the staggered text has finished appearing (~9s after
+  // .show is applied — see the introFadeUp delays in CSS), let the
+  // solid black layer fade away slowly on its own, revealing the
+  // animated world behind the text.
+  setTimeout(()=>{
+    const blackout = document.getElementById('introBlackout');
+    if(blackout) blackout.classList.add('fade');
+  }, 9000);
+});
+
 document.getElementById('startBtn').addEventListener('click', ()=>{
+  // This click IS a real user gesture — guarantees audio starts even if
+  // the earlier autoplay attempt was blocked.
+  unlockAudio();
+
+  // Make sure the blackout is gone even if clicked early, so the
+  // transition into the map feels seamless either way.
+  const blackout = document.getElementById('introBlackout');
+  if(blackout) blackout.classList.add('fade');
+
   document.getElementById('opening').classList.add('dismiss');
   refreshActiveUI('home');
   panTo(LOCATIONS[0], {duration:1.2});
