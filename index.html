@@ -209,7 +209,7 @@ a{color:inherit;}
 
 /* bottom dock nav */
 .dock-wrap{
-  position:absolute; left:50%; bottom:22px; transform:translateX(-50%);
+  position:absolute; left:50%; bottom:calc(22px + env(safe-area-inset-bottom)); transform:translateX(-50%);
   pointer-events:auto; max-width:94vw;
 }
 .dock-wrap::before, .dock-wrap::after{
@@ -392,13 +392,16 @@ a{color:inherit;}
   .map-panel{width:min(84vw,300px); right:14px;}
   #panel{width:100vw; border-left:none;}
   .panel-inner{padding:24px 22px 50px;}
-  .dock-wrap{max-width:96vw; bottom:14px;}
+  .dock-wrap{max-width:96vw; bottom:calc(14px + env(safe-area-inset-bottom));}
   .dock{max-width:96vw;}
   .dock-btn{padding:8px 10px; font-size:11.5px;}
-  .brand{top:16px; left:16px;}
-  .top-right-controls{top:16px; right:16px;}
+  .brand{top:calc(16px + env(safe-area-inset-top)); left:16px;}
+  .top-right-controls{top:calc(16px + env(safe-area-inset-top)); right:16px;}
   .modal-grid{grid-template-columns:1fr;}
-  .location-tag{top:16px;}
+  .location-tag{top:calc(16px + env(safe-area-inset-top));}
+  .opening-content{padding-bottom:calc(12vh + env(safe-area-inset-bottom));}
+  .node-label{font-size:16px;}
+  .node-sub{font-size:11px;}
 }
 </style>
 </head>
@@ -911,8 +914,19 @@ function applyVB(){ svg.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.h}
 applyVB();
 
 function frameFor(loc, zoom){
-  const w = zoom || 900, h = w*0.5;
-  return { x: loc.x - w/2, y: loc.y - h/2 - 40, w, h };
+  // Base the camera window on the screen's actual aspect ratio instead of a
+  // fixed 2:1 landscape shape — on a portrait phone that fixed shape forced
+  // "xMidYMid slice" to zoom in hard and crop the tops/bottoms off nodes.
+  const screenAR = svg.clientWidth && svg.clientHeight
+    ? svg.clientWidth / svg.clientHeight
+    : (window.innerWidth / window.innerHeight);
+  // Clamp so extreme ratios (very tall phones, ultra-wide monitors) don't
+  // zoom in absurdly close or pull back so far the scene reads as empty.
+  const ar = Math.min(2.2, Math.max(0.55, screenAR));
+  const isNarrow = window.innerWidth < 760;
+  const w = zoom || (isNarrow ? 620 : 900);
+  const h = w / ar;
+  return { x: loc.x - w/2, y: loc.y - h/2 - (isNarrow ? 10 : 40), w, h };
 }
 function panTo(loc, opts={}){
   const target = frameFor(loc, opts.zoom);
@@ -925,6 +939,20 @@ function panTo(loc, opts={}){
     });
   });
 }
+
+/* Re-frame the current location whenever the viewport size/orientation
+   changes, so rotating a phone (or the browser being resized) doesn't
+   leave the camera stuck on a stale aspect ratio. Skipped mid-drive so it
+   never fights an in-progress camera tween. */
+let resizeTimer;
+window.addEventListener('resize', ()=>{
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(()=>{
+    if(isTraveling) return;
+    const loc = LOCATIONS.find(l=>l.id===currentId);
+    if(loc){ vb = frameFor(loc); applyVB(); }
+  }, 200);
+});
 
 /* ---------------------------------------------------------------------
    ROAD PATH SAMPLING — map each node to a length-fraction of the road
